@@ -95,6 +95,7 @@ public:
     // Save pcd
     bool savePCD;
     string savePCDDirectory;
+    string globalMapFile;
 
     // Lidar Sensor Configuration
     SensorType sensor;
@@ -171,10 +172,11 @@ public:
         nh.param<bool>("liorf_localization/useImuHeadingInitialization", useImuHeadingInitialization, false);
         nh.param<bool>("liorf_localization/useGpsElevation", useGpsElevation, false);
         nh.param<float>("liorf_localization/gpsCovThreshold", gpsCovThreshold, 2.0);
-        nh.param<float>("liorf_localization/poseCovThreshold", poseCovThreshold, 25.0);
+        nh.param<float>("liorf_localization/poseCovThreshold", poseCovThreshold, 25.0);        
 
         nh.param<bool>("liorf_localization/savePCD", savePCD, false);
         nh.param<std::string>("liorf_localization/savePCDDirectory", savePCDDirectory, "/Downloads/LOAM/");
+        // nh.param<std::string>("liorf_localization/globalMapFile", globalMapFile, "/root/catkin_ws/globalMap.pcd");
 
         std::string sensorStr;
         nh.param<std::string>("liorf_localization/sensor", sensorStr, "");

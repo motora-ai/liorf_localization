@@ -1,9 +1,13 @@
 <launch>
 
     <arg name="project" default="liorf_localization"/>
+    <arg name="liorf_localization/globalMapFile" default="/default/path/map.pcd"/>
     
     <!-- Parameters -->
-    <rosparam file="$(find liorf_localization)/config/localization.yaml" command="load" />
+    <!-- <rosparam file="$(find liorf_localization)/config/localization.yaml" command="load" /> -->
+    <rosparam subst_value="true" file="$(find liorf_localization)/config/localization.yaml" command="load" />
+    <param name="liorf_localization/globalMapFile" value="$(arg liorf_localization/globalMapFile)" />
+
 
     <!--- LOAM -->
     <include file="$(find liorf_localization)/launch/include/module_loam.launch" />

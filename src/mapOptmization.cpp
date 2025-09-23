@@ -229,8 +229,9 @@ public:
     // add by yjz_lucky_boy
     void loadGlobalMap()
     {
-        std::string global_map = std::getenv("HOME") + savePCDDirectory;
-        pcl::io::loadPCDFile<PointType>(global_map + "GlobalMap.pcd", *laserCloudSurfFromMap);
+        // ros::param::param<std::string>("globalMapFile", globalMapFile);
+        nh.getParam("liorf_localization/globalMapFile", globalMapFile);
+        pcl::io::loadPCDFile<PointType>(globalMapFile, *laserCloudSurfFromMap);
         downSizeFilterLocalMapSurf.setInputCloud(laserCloudSurfFromMap);
         downSizeFilterLocalMapSurf.filter(*laserCloudSurfFromMapDS);
         laserCloudSurfFromMapDSNum = laserCloudSurfFromMapDS->size();
