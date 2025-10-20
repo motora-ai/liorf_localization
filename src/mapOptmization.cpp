@@ -305,7 +305,7 @@ public:
         // ------------------------------
 
         // extrinsics: Lidar -> IMU
-        Eigen::Quaterniond extQ(extRPY).inverse();  // converte pra quaternion
+        Eigen::Quaterniond extQ = Eigen::Quaterniond(extRPY).inverse();  // converte pra quaternion
 
         // Converte orientação inicial para Eigen
         Eigen::Quaterniond q_in(msgIn->pose.pose.orientation.w,
