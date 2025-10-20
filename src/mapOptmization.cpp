@@ -304,8 +304,7 @@ public:
         // APLICA ROTAÇÃO LIDAR->IMU
         // ------------------------------
 
-        // extrinsics: Lidar -> IMU
-        Eigen::Quaterniond extQ = Eigen::Quaterniond(extRPY).inverse();  // converte pra quaternion
+        // extrinsics: Lidar -> IMU        
 
         // Converte orientação inicial para Eigen
         Eigen::Quaterniond q_in(msgIn->pose.pose.orientation.w,
@@ -315,7 +314,7 @@ public:
 
         // Aplica a rotação extrínseca
         // IMU_quat = Lidar_quat * extRot
-        Eigen::Quaterniond q_rotated = q_in * extQ;  // LiDAR->IMU
+        Eigen::Quaterniond q_rotated = quat_W2NED * q_in * extQRPY;  // LiDAR->IMU
 
         // Atualiza orientação com a rotação aplicada
         tf::Quaternion q_final(q_rotated.x(), q_rotated.y(), q_rotated.z(), q_rotated.w());
