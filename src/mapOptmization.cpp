@@ -305,8 +305,7 @@ public:
         // ------------------------------
 
         // extrinsics: Lidar -> IMU
-        Eigen::Matrix3d extRot;      // sua matriz 3x3 (preenchida em outro ponto)
-        Eigen::Quaterniond extQ(extRot);  // converte pra quaternion
+        Eigen::Quaterniond extQ(extRPY);  // converte pra quaternion
 
         // Converte orientação inicial para Eigen
         Eigen::Quaterniond q_in(msgIn->pose.pose.orientation.w,
@@ -502,7 +501,7 @@ public:
         thisPose6D.yaw   = transformIn[2];
         return thisPose6D;
     }
-    
+
     bool saveMapService(liorf_localization::save_mapRequest& req, liorf_localization::save_mapResponse& res)
     {
       string saveMapDirectory;
