@@ -248,13 +248,39 @@ public:
         publishCloud(pubGlobalMap, laserCloudSurfFromMapDS, ros::Time::now(), mapFrame);   
     }
 
-    // add by yjz_lucky_boy
-    void initialposeHandler(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msgIn) 
-    {
-        tf::Quaternion q(msgIn->pose.pose.orientation.x, msgIn->pose.pose.orientation.y, 
-                            msgIn->pose.pose.orientation.z, msgIn->pose.pose.orientation.w);
-        tf::Matrix3x3 qm(q);
+    // // add by yjz_lucky_boy
+    // void initialposeHandler(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msgIn) 
+    // {
+    //     tf::Quaternion q(msgIn->pose.pose.orientation.x, msgIn->pose.pose.orientation.y, 
+    //                         msgIn->pose.pose.orientation.z, msgIn->pose.pose.orientation.w);
+    //     tf::Matrix3x3 qm(q);
 
+    //     double roll, pitch, yaw;
+    //     qm.getRPY(roll, pitch, yaw);
+
+    //     initialize_pose[0] = roll;
+    //     initialize_pose[1] = pitch;
+    //     initialize_pose[2] = yaw;
+
+    //     initialize_pose[3] = msgIn->pose.pose.position.x;
+    //     initialize_pose[4] = msgIn->pose.pose.position.y;
+    //     initialize_pose[5] = msgIn->pose.pose.position.z;
+
+    //     std::cout << "manual initialize pose: \n" << initialize_pose[3] << "\n" << initialize_pose[4] << "\n" << initialize_pose[5] << "\n" 
+    //               << initialize_pose[0] << "\n" << initialize_pose[1] << "\n" << initialize_pose[2] << std::endl;
+
+    //     has_initialize_pose = true;
+    // }
+
+    void initialposeHandler(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msgIn)
+{
+        // Extrai orientação recebida
+        tf::Quaternion q(msgIn->pose.pose.orientation.x,
+                        msgIn->pose.pose.orientation.y,
+                        msgIn->pose.pose.orientation.z,
+                        msgIn->pose.pose.orientation.w);
+
+        tf::Matrix3x3 qm(q);
         double roll, pitch, yaw;
         qm.getRPY(roll, pitch, yaw);
 
@@ -266,11 +292,48 @@ public:
         initialize_pose[4] = msgIn->pose.pose.position.y;
         initialize_pose[5] = msgIn->pose.pose.position.z;
 
-        std::cout << "manual initialize pose: \n" << initialize_pose[3] << "\n" << initialize_pose[4] << "\n" << initialize_pose[5] << "\n" 
-                  << initialize_pose[0] << "\n" << initialize_pose[1] << "\n" << initialize_pose[2] << std::endl;
+        std::cout << "manual initialize pose (raw): \n"
+                << "x: " << initialize_pose[3] << "\n"
+                << "y: " << initialize_pose[4] << "\n"
+                << "z: " << initialize_pose[5] << "\n"
+                << "r: " << initialize_pose[0] << "\n"
+                << "p: " << initialize_pose[1] << "\n"
+                << "y: " << initialize_pose[2] << std::endl;
+
+        // ------------------------------
+        // APLICA ROTAÇÃO LIDAR->IMU
+        // ------------------------------
+
+        // extrinsics: Lidar -> IMU
+        Eigen::Matrix3d extRot;      // sua matriz 3x3 (preenchida em outro ponto)
+        Eigen::Quaterniond extQ(extRot);  // converte pra quaternion
+
+        // Converte orientação inicial para Eigen
+        Eigen::Quaterniond q_in(msgIn->pose.pose.orientation.w,
+                                msgIn->pose.pose.orientation.x,
+                                msgIn->pose.pose.orientation.y,
+                                msgIn->pose.pose.orientation.z);
+
+        // Aplica a rotação extrínseca
+        // IMU_quat = Lidar_quat * extRot
+        Eigen::Quaterniond q_rotated = q_in * extQ;  // LiDAR->IMU
+
+        // Atualiza orientação com a rotação aplicada
+        tf::Quaternion q_final(q_rotated.x(), q_rotated.y(), q_rotated.z(), q_rotated.w());
+        tf::Matrix3x3 qf(q_final);
+        qf.getRPY(roll, pitch, yaw);
+
+        initialize_pose[0] = roll;
+        initialize_pose[1] = pitch;
+        initialize_pose[2] = yaw;
+
+        std::cout << "manual initialize pose (after extrinsic L->I): \n"
+                << "r: " << roll << "\n"
+                << "p: " << pitch << "\n"
+                << "y: " << yaw << std::endl;
 
         has_initialize_pose = true;
-    }
+}
 
     void laserCloudInfoHandler(const liorf_localization::cloud_infoConstPtr& msgIn)
     {
