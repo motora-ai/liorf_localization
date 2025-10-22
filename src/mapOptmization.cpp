@@ -227,26 +227,63 @@ public:
     }
 
     // add by yjz_lucky_boy
-    void loadGlobalMap()
-    {
-        // ros::param::param<std::string>("globalMapFile", globalMapFile);
-        nh.getParam("liorf_localization/globalMapFile", globalMapFile);
-        pcl::io::loadPCDFile<PointType>(globalMapFile, *laserCloudSurfFromMap);
-        downSizeFilterLocalMapSurf.setInputCloud(laserCloudSurfFromMap);
-        downSizeFilterLocalMapSurf.filter(*laserCloudSurfFromMapDS);
-        laserCloudSurfFromMapDSNum = laserCloudSurfFromMapDS->size();
-        std::cout << "global map size: " << laserCloudSurfFromMapDSNum << std::endl;
+    // void loadGlobalMap()
+    // {
+    //     // ros::param::param<std::string>("globalMapFile", globalMapFile);
+    //     nh.getParam("liorf_localization/globalMapFile", globalMapFile);
+    //     pcl::io::loadPCDFile<PointType>(globalMapFile, *laserCloudSurfFromMap);
+    //     downSizeFilterLocalMapSurf.setInputCloud(laserCloudSurfFromMap);
+    //     downSizeFilterLocalMapSurf.filter(*laserCloudSurfFromMapDS);
+    //     laserCloudSurfFromMapDSNum = laserCloudSurfFromMapDS->size();
+    //     std::cout << "global map size: " << laserCloudSurfFromMapDSNum << std::endl;
 
-        if (laserCloudSurfFromMapDSNum < 1000)
-          return;
+    //     if (laserCloudSurfFromMapDSNum < 1000)
+    //       return;
         
-        has_global_map = true;
+    //     has_global_map = true;
 
-        kdtreeSurfFromMap->setInputCloud(laserCloudSurfFromMapDS);
+    //     kdtreeSurfFromMap->setInputCloud(laserCloudSurfFromMapDS);
 
-        sleep(3);
-        publishCloud(pubGlobalMap, laserCloudSurfFromMapDS, ros::Time::now(), mapFrame);   
-    }
+    //     sleep(3);
+    //     publishCloud(pubGlobalMap, laserCloudSurfFromMapDS, ros::Time::now(), mapFrame);   
+    // }
+
+    void loadGlobalMap()
+{
+    // Lê o caminho do mapa
+    nh.getParam("liorf_localization/globalMapFile", globalMapFile);
+
+    // Carrega o arquivo .pcd original
+    pcl::io::loadPCDFile<PointType>(globalMapFile, *laserCloudSurfFromMap);
+
+    // --- ROTACIONAR MAPA EM TORNO DO EIXO Z (90 GRAUS) ---
+    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+    float theta = M_PI / 2.0;  // 90 graus em radianos
+    transform.rotate(Eigen::AngleAxisf(theta, Eigen::Vector3f::UnitZ()));
+
+    pcl::PointCloud<PointType>::Ptr rotatedMap(new pcl::PointCloud<PointType>());
+    pcl::transformPointCloud(*laserCloudSurfFromMap, *rotatedMap, transform);
+
+    // Substitui o mapa original pelo rotacionado
+    *laserCloudSurfFromMap = *rotatedMap;
+    // ----------------------------------------------------------
+
+    // Downsample
+    downSizeFilterLocalMapSurf.setInputCloud(laserCloudSurfFromMap);
+    downSizeFilterLocalMapSurf.filter(*laserCloudSurfFromMapDS);
+    laserCloudSurfFromMapDSNum = laserCloudSurfFromMapDS->size();
+    std::cout << "global map size: " << laserCloudSurfFromMapDSNum << std::endl;
+
+    if (laserCloudSurfFromMapDSNum < 1000)
+        return;
+
+    has_global_map = true;
+
+    kdtreeSurfFromMap->setInputCloud(laserCloudSurfFromMapDS);
+
+    sleep(3);
+    publishCloud(pubGlobalMap, laserCloudSurfFromMapDS, ros::Time::now(), mapFrame);
+}
 
     // // add by yjz_lucky_boy
     // void initialposeHandler(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msgIn) 
