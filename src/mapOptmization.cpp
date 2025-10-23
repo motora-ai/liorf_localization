@@ -259,6 +259,7 @@ public:
     // --- ROTACIONAR MAPA EM TORNO DO EIXO Z (90 GRAUS) ---
     Eigen::Affine3f transform = Eigen::Affine3f::Identity();
     float theta = M_PI / 2.0;  // 90 graus em radianos
+    theta = 0;
     transform.rotate(Eigen::AngleAxisf(theta, Eigen::Vector3f::UnitZ()));
 
     pcl::PointCloud<PointType>::Ptr rotatedMap(new pcl::PointCloud<PointType>());
