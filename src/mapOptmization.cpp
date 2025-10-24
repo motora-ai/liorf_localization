@@ -24,6 +24,10 @@ using symbol_shorthand::V; // Vel   (xdot,ydot,zdot)
 using symbol_shorthand::B; // Bias  (ax,ay,az,gx,gy,gz)
 using symbol_shorthand::G; // GPS pose
 
+// file to store estimated data - vj 
+std::ofstream odom_file("/root/catkin_ws/datasets/stamped_traj_estimate.txt");
+// *************************************************************
+ 
 /*
     * A point cloud type that has 6D pose info ([x,y,z,roll,pitch,yaw] intensity is time stamp)
     */
@@ -1763,6 +1767,22 @@ public:
         laserOdometryROS.pose.pose.position.z = transformTobeMapped[5];
         laserOdometryROS.pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(transformTobeMapped[0], transformTobeMapped[1], transformTobeMapped[2]);
         pubLaserOdometryGlobal.publish(laserOdometryROS);
+
+        double timestamp_test = timeLaserInfoStamp.toSec();
+        ROS_INFO("timeLaserInfoStamp: %f",timestamp_test); // debug code - vj
+        ROS_INFO("timeLaserInfoCurrent: %f",timeLaserInfoCur); // debug code - vj
+
+        // ***************************************************
+        odom_file << std::fixed << std::setprecision(6) // saving data
+                  << timestamp_test << " "               // Timestamp
+                  << transformTobeMapped[3] << " "      // x
+                  << transformTobeMapped[4] << " "      // y
+                  << transformTobeMapped[5] << " "      // z
+                  << laserOdometryROS.pose.pose.orientation.x << " "      // q_x
+                  << laserOdometryROS.pose.pose.orientation.y << " "      // q_y
+                  << laserOdometryROS.pose.pose.orientation.y << " "      // q_z
+                  << laserOdometryROS.pose.pose.orientation.w << "\n";    // q_w        
+        // ***************************************************
         
         // Publish TF
         static tf::TransformBroadcaster br;
@@ -1876,9 +1896,16 @@ public:
     }
 };
 
+// write header only once - vj
+void initOdomFile()
+{
+    if (odom_file.is_open() && odom_file.tellp() == 0)
+        odom_file << "# timestamp tx ty tz qx qy qz qw\n";
+}
 
 int main(int argc, char** argv)
 {
+    initOdomFile(); // init file - vj
     ros::init(argc, argv, "liorf_localization");
 
     mapOptimization MO;
@@ -1889,6 +1916,12 @@ int main(int argc, char** argv)
     // std::thread visualizeMapThread(&mapOptimization::visualizeGlobalMapThread, &MO);
 
     ros::spin();
+
+    // Register shutdown callback - vj
+    if (odom_file.is_open()) {
+        odom_file.close();
+        ROS_INFO("Odometry log file closed.");
+    }
 
     // loopthread.join();
     // visualizeMapThread.join();
