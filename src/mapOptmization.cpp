@@ -227,64 +227,26 @@ public:
     }
 
     // add by yjz_lucky_boy
-    // void loadGlobalMap()
-    // {
-    //     // ros::param::param<std::string>("globalMapFile", globalMapFile);
-    //     nh.getParam("liorf_localization/globalMapFile", globalMapFile);
-    //     pcl::io::loadPCDFile<PointType>(globalMapFile, *laserCloudSurfFromMap);
-    //     downSizeFilterLocalMapSurf.setInputCloud(laserCloudSurfFromMap);
-    //     downSizeFilterLocalMapSurf.filter(*laserCloudSurfFromMapDS);
-    //     laserCloudSurfFromMapDSNum = laserCloudSurfFromMapDS->size();
-    //     std::cout << "global map size: " << laserCloudSurfFromMapDSNum << std::endl;
-
-    //     if (laserCloudSurfFromMapDSNum < 1000)
-    //       return;
-        
-    //     has_global_map = true;
-
-    //     kdtreeSurfFromMap->setInputCloud(laserCloudSurfFromMapDS);
-
-    //     sleep(3);
-    //     publishCloud(pubGlobalMap, laserCloudSurfFromMapDS, ros::Time::now(), mapFrame);   
-    // }
-
     void loadGlobalMap()
-{
-    // Lê o caminho do mapa
-    nh.getParam("liorf_localization/globalMapFile", globalMapFile);
+    {
+        // ros::param::param<std::string>("globalMapFile", globalMapFile);
+        nh.getParam("liorf_localization/globalMapFile", globalMapFile);
+        pcl::io::loadPCDFile<PointType>(globalMapFile, *laserCloudSurfFromMap);
+        downSizeFilterLocalMapSurf.setInputCloud(laserCloudSurfFromMap);
+        downSizeFilterLocalMapSurf.filter(*laserCloudSurfFromMapDS);
+        laserCloudSurfFromMapDSNum = laserCloudSurfFromMapDS->size();
+        std::cout << "global map size: " << laserCloudSurfFromMapDSNum << std::endl;
 
-    // Carrega o arquivo .pcd original
-    pcl::io::loadPCDFile<PointType>(globalMapFile, *laserCloudSurfFromMap);
+        if (laserCloudSurfFromMapDSNum < 1000)
+          return;
+        
+        has_global_map = true;
 
-    // --- ROTACIONAR MAPA EM TORNO DO EIXO Z (90 GRAUS) ---
-    Eigen::Affine3f transform = Eigen::Affine3f::Identity();
-    float theta = M_PI / 2.0;  // 90 graus em radianos
-    theta = 0;
-    transform.rotate(Eigen::AngleAxisf(theta, Eigen::Vector3f::UnitZ()));
+        kdtreeSurfFromMap->setInputCloud(laserCloudSurfFromMapDS);
 
-    pcl::PointCloud<PointType>::Ptr rotatedMap(new pcl::PointCloud<PointType>());
-    pcl::transformPointCloud(*laserCloudSurfFromMap, *rotatedMap, transform);
-
-    // Substitui o mapa original pelo rotacionado
-    *laserCloudSurfFromMap = *rotatedMap;
-    // ----------------------------------------------------------
-
-    // Downsample
-    downSizeFilterLocalMapSurf.setInputCloud(laserCloudSurfFromMap);
-    downSizeFilterLocalMapSurf.filter(*laserCloudSurfFromMapDS);
-    laserCloudSurfFromMapDSNum = laserCloudSurfFromMapDS->size();
-    std::cout << "global map size: " << laserCloudSurfFromMapDSNum << std::endl;
-
-    if (laserCloudSurfFromMapDSNum < 1000)
-        return;
-
-    has_global_map = true;
-
-    kdtreeSurfFromMap->setInputCloud(laserCloudSurfFromMapDS);
-
-    sleep(3);
-    publishCloud(pubGlobalMap, laserCloudSurfFromMapDS, ros::Time::now(), mapFrame);
-}
+        sleep(3);
+        publishCloud(pubGlobalMap, laserCloudSurfFromMapDS, ros::Time::now(), mapFrame);   
+    }
 
     // // add by yjz_lucky_boy
     // void initialposeHandler(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msgIn) 
@@ -376,6 +338,7 @@ public:
         // extract time stamp
         timeLaserInfoStamp = msgIn->header.stamp;
         timeLaserInfoCur = msgIn->header.stamp.toSec();
+        cout << "scan ts: " << std::fixed << std::setprecision(0) <<  timeLaserInfoStamp << endl;
 
         // extract info and feature cloud
         cloudInfo = *msgIn;
@@ -410,15 +373,75 @@ public:
         }
     }
 
+    // bool systemInitialize()
+    // {
+    //     if (!has_global_map)
+    //       return false;
+
+    //     if(!has_initialize_pose)
+    //     {
+    //       ROS_WARN("need initilize pose from rviz.");
+    //       return false;
+    //     }
+
+    //     static pcl::IterativeClosestPoint<PointType, PointType> icp;
+    //     icp.setMaxCorrespondenceDistance(20);
+    //     icp.setMaximumIterations(100);
+    //     icp.setTransformationEpsilon(1e-6);
+    //     icp.setEuclideanFitnessEpsilon(1e-6);
+    //     icp.setRANSACIterations(0);
+
+    //     Eigen::Affine3f initialize_affine = trans2Affine3f(initialize_pose);
+
+    //     pcl::PointCloud<PointType>::Ptr out_cloud(new pcl::PointCloud<PointType>());
+    //     pcl::PointCloud<PointType>::Ptr result(new pcl::PointCloud<PointType>());
+    //     pcl::transformPointCloud(*laserCloudSurfLast, *out_cloud, initialize_affine);
+    //     // Align clouds
+    //     icp.setInputSource(out_cloud);
+    //     icp.setInputTarget(laserCloudSurfFromMapDS);
+    //     icp.align(*result);
+
+    //     Eigen::Affine3f correctionLidarFrame;
+    //     float x, y, z, roll, pitch, yaw;
+    //     correctionLidarFrame = icp.getFinalTransformation();
+    //     Eigen::Affine3f tCorrect = correctionLidarFrame * initialize_affine;
+    //     pcl::getTranslationAndEulerAngles (tCorrect, x, y, z, roll, pitch, yaw);
+
+    //     transformTobeMapped[0] = roll;
+    //     transformTobeMapped[1] = pitch;
+    //     transformTobeMapped[2] = yaw;
+    //     transformTobeMapped[3] = x;
+    //     transformTobeMapped[4] = y;
+    //     transformTobeMapped[5] = z;
+
+    //     pcl::PointCloud<PointType>::Ptr cloudOut(new pcl::PointCloud<PointType>());
+    //     PointTypePose thisPose6D = trans2PointTypePose(transformTobeMapped);
+    //     *cloudOut += *transformPointCloud(laserCloudSurfLast, &thisPose6D);
+    //     publishCloud(pubRecentKeyFrame, cloudOut, timeLaserInfoStamp, mapFrame);
+
+    //     if (icp.hasConverged() && icp.getFitnessScore() < 0.3)
+    //     {
+    //         ROS_INFO("initialize pose sucessful");
+    //         system_initialized = true;
+    //         return true;
+    //     } 
+    //     else
+    //     {
+    //         ROS_ERROR("initialize pose failed");
+    //         has_initialize_pose = false;
+    //         system_initialized = false;
+    //         return false;
+    //     }
+    // }
     bool systemInitialize()
     {
         if (!has_global_map)
-          return false;
+            return false;
 
-        if(!has_initialize_pose)
+        if (!has_initialize_pose)
         {
-          ROS_WARN("need initilize pose from rviz.");
-          return false;
+            ROS_WARN("need initialize pose from rviz.");
+            return false;
         }
 
         static pcl::IterativeClosestPoint<PointType, PointType> icp;
@@ -428,21 +451,67 @@ public:
         icp.setEuclideanFitnessEpsilon(1e-6);
         icp.setRANSACIterations(0);
 
-        Eigen::Affine3f initialize_affine = trans2Affine3f(initialize_pose);
+        pcl::PointCloud<PointType>::Ptr best_result(new pcl::PointCloud<PointType>());
+        double best_score = std::numeric_limits<double>::max();
+        Eigen::Affine3f best_affine;
 
-        pcl::PointCloud<PointType>::Ptr out_cloud(new pcl::PointCloud<PointType>());
-        pcl::PointCloud<PointType>::Ptr result(new pcl::PointCloud<PointType>());
-        pcl::transformPointCloud(*laserCloudSurfLast, *out_cloud, initialize_affine);
-        // Align clouds
-        icp.setInputSource(out_cloud);
-        icp.setInputTarget(laserCloudSurfFromMapDS);
-        icp.align(*result);
+        // parâmetros da busca
+        float yaw_step_deg = 10.0f;
+        int num_steps = 360 / yaw_step_deg;
+        float roll_init = initialize_pose[0];
+        float pitch_init = initialize_pose[1];
+        float yaw_init = initialize_pose[2];
 
-        Eigen::Affine3f correctionLidarFrame;
+        // varredura de yaw
+        for (int i = 0; i < num_steps; ++i)
+        {
+            float yaw_try = yaw_init + i * yaw_step_deg * M_PI / 180.0f;
+
+            float try_pose[6];
+            try_pose[0] = roll_init;
+            try_pose[1] = pitch_init;
+            try_pose[2] = yaw_try;
+            try_pose[3] = initialize_pose[3];
+            try_pose[4] = initialize_pose[4];
+            try_pose[5] = initialize_pose[5];
+
+            Eigen::Affine3f initialize_affine = trans2Affine3f(try_pose);
+
+            pcl::PointCloud<PointType>::Ptr out_cloud(new pcl::PointCloud<PointType>());
+            pcl::PointCloud<PointType>::Ptr result(new pcl::PointCloud<PointType>());
+            pcl::transformPointCloud(*laserCloudSurfLast, *out_cloud, initialize_affine);
+
+            // ICP
+            icp.setInputSource(out_cloud);
+            icp.setInputTarget(laserCloudSurfFromMapDS);
+            icp.align(*result);
+
+            double score = icp.getFitnessScore();            
+
+            ROS_INFO("Yaw %.1f deg -> score %.4f", yaw_try * 180.0 / M_PI, score);
+
+            if (icp.hasConverged() && score < best_score)
+            {
+                best_score = score;
+                Eigen::Affine3f correctionLidarFrame;
+                correctionLidarFrame = icp.getFinalTransformation();
+                best_affine = correctionLidarFrame * initialize_affine;
+                *best_result = *result;
+                if (score < 0.1) break;
+            }
+        }
+
+        if (best_score == std::numeric_limits<double>::max())
+        {
+            ROS_ERROR("All yaw initialization attempts failed");
+            has_initialize_pose = false;
+            system_initialized = false;
+            return false;
+        }
+
+        // Extrai parâmetros da melhor pose
         float x, y, z, roll, pitch, yaw;
-        correctionLidarFrame = icp.getFinalTransformation();
-        Eigen::Affine3f tCorrect = correctionLidarFrame * initialize_affine;
-        pcl::getTranslationAndEulerAngles (tCorrect, x, y, z, roll, pitch, yaw);
+        pcl::getTranslationAndEulerAngles(best_affine, x, y, z, roll, pitch, yaw);
 
         transformTobeMapped[0] = roll;
         transformTobeMapped[1] = pitch;
@@ -451,23 +520,22 @@ public:
         transformTobeMapped[4] = y;
         transformTobeMapped[5] = z;
 
-        pcl::PointCloud<PointType>::Ptr cloudOut(new pcl::PointCloud<PointType>());
         PointTypePose thisPose6D = trans2PointTypePose(transformTobeMapped);
+        pcl::PointCloud<PointType>::Ptr cloudOut(new pcl::PointCloud<PointType>());
         *cloudOut += *transformPointCloud(laserCloudSurfLast, &thisPose6D);
-        publishCloud(pubRecentKeyFrame, cloudOut, timeLaserInfoStamp, mapFrame);
+        publishCloud(pubRecentKeyFrame, cloudOut, ros::Time::now(), mapFrame);
 
-        if (icp.hasConverged() && icp.getFitnessScore() < 0.3)
+        if (best_score < 0.3)
         {
-            ROS_INFO("initialize pose sucessful");
+            ROS_INFO("initialize pose successful (best score = %.4f)", best_score);
             system_initialized = true;
             return true;
-        } 
+        }
         else
         {
-            ROS_ERROR("initialize pose failed");
-            has_initialize_pose = false;
-            system_initialized = false;
-            return false;
+            ROS_WARN("initialize pose weakly successful (best score = %.4f)", best_score);
+            system_initialized = true;
+            return true;
         }
     }
 
